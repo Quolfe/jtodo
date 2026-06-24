@@ -5,19 +5,7 @@ use regex::Regex;
 const _CURRENT_VERSION: &str = "1.0";
 
 pub fn read_data() -> Result<Vec<Task>, String> {
-    let mut data_dir = match env::var("XDG_DATA_HOME") {
-        Ok(path) => path,
-        Err(_) => {
-            let mut home_dir = match env::var("HOME") {
-                Ok(path) => path,
-                Err(_) => return Err("$HOME not found".to_owned()),
-            };
-            home_dir.push_str("/.local");
-            home_dir
-        }
-    };
-    data_dir.push_str("/share");
-    data_dir.push_str("/jtodo");
+    let data_dir = get_data_dir()?;
     let dir_iter = match fs::read_dir(&data_dir) {
         Ok(dir_iter) => dir_iter,
         Err(_) => {
@@ -86,4 +74,21 @@ pub fn read_data() -> Result<Vec<Task>, String> {
 
 pub fn write_data() -> Result<(), &'static str> {
     Ok(())
+}
+
+fn get_data_dir() -> Result<String, String> {
+    let mut data_dir = match env::var("XDG_DATA_HOME") {
+        Ok(path) => path,
+        Err(_) => {
+            let mut home_dir = match env::var("HOME") {
+                Ok(path) => path,
+                Err(_) => return Err("$HOME not found".to_owned()),
+            };
+            home_dir.push_str("/.local");
+            home_dir
+        }
+    };
+    data_dir.push_str("/share");
+    data_dir.push_str("/jtodo");
+    Ok(data_dir)
 }
