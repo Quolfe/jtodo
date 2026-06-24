@@ -1,8 +1,8 @@
 use super::Task;
-use std::{env, fs};
+use std::{env, fs, time::Duration};
 use regex::Regex;
 
-const CURRENT_VERSION: &str = "1.0";
+const _CURRENT_VERSION: &str = "1.0";
 
 pub fn read_data() -> Result<Vec<Task>, String> {
     let mut data_dir = match env::var("XDG_DATA_HOME") {
@@ -16,6 +16,7 @@ pub fn read_data() -> Result<Vec<Task>, String> {
             home_dir
         }
     };
+    data_dir.push_str("/share");
     data_dir.push_str("/jtodo");
     let dir_iter = match fs::read_dir(&data_dir) {
         Ok(dir_iter) => dir_iter,
@@ -50,30 +51,35 @@ pub fn read_data() -> Result<Vec<Task>, String> {
         Err(_) => return Err(format!("Unable to read {}", data_file_path.to_str().unwrap())),
     };
     let mut data_file_lines = data_file_contents.lines();
-    let version = data_file_lines.next().unwrap_or("");
-    let line_re = Regex::new("(\\d+) (\\d+) (\\d+) (\\d+) \\[[\\d ]+\\] \"(.*)\" \"(.*)\"").unwrap();
+    let _version = data_file_lines.next().unwrap_or("");
+    let line_re = Regex::new("(\\d+) (\\d+) (\\d+) (\\d+|-) \\[([\\d ]+)\\] \"(.*)\" \"(.*)\"").unwrap();
     let parse_value = |s: &str, line_num: usize| {
         match s.parse() { Ok(val) => Ok(val), Err(_) => Err(format!("Bad value on line {line_num}: {}", &s)) }
     };
     let mut tasks = Vec::new();
     for (i, line) in data_file_lines.enumerate() {
-        let i = i + 1;
+        let i = i;
         let caps = match line_re.captures(line) {
             Some(caps) => caps,
             None => return Err(format!("Line {i} does not match data format.")),
         };
-        let priority: usize = parse_value(&caps[1], i)?;
-        let time_due: usize = parse_value(&caps[2], i)?;
-        let duration: usize = parse_value(&caps[3], i)?;
-        let parent_id: usize = parse_value(&caps[4], i)?;
+        let priority: usize = parse_value(&caps[1], i + 1)?;
+        let time_due: usize = parse_value(&caps[2], i + 1)?;
+        let duration: Duration = Duration::from_mins((parse_value(&caps[3], i+ 1)?) as u64);
+        let parent_id: Option<usize> = match &caps[4] {
+            "-" => None,
+            n => Some(parse_value(n, i + 1)?),
+        };
         let subtasks: Vec<usize> = caps[5]
             .split(" ")
-            .map(|n| parse_value(n, i))
+            .map(|n| parse_value(n, i + 1))
             .filter(|e| e.is_ok())
             .map(|e| e.unwrap())
             .collect();
         let name = caps[6].to_owned();
         let description = caps[7].to_owned();
+        let task = Task::new(i, name, description, priority, time_due, duration, parent_id, subtasks);
+        tasks.push(task);
     }
     Ok(tasks)
 }
