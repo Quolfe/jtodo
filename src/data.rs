@@ -2,7 +2,7 @@ use super::Task;
 use std::{env, fs, path::{Path, PathBuf}, time::Duration};
 use regex::Regex;
 
-const _CURRENT_VERSION: &str = "1.0";
+const CURRENT_VERSION: &str = "1.0";
 
 pub fn read_data() -> Result<Vec<Task>, String> {
     let mut data_file_path = get_data_dir()?;
@@ -45,7 +45,25 @@ pub fn read_data() -> Result<Vec<Task>, String> {
     Ok(tasks)
 }
 
-pub fn write_data() -> Result<(), &'static str> {
+pub fn write_data(tasks: &Vec<Task>) -> Result<(), String> {
+    let mut file_buf = String::new();
+    file_buf.push_str(CURRENT_VERSION);
+    for task in tasks {
+        file_buf.push('\n');
+        let data_line = task.format_data();
+        file_buf.push_str(&data_line);
+    }
+    let data_dir = get_data_dir()?;
+    if let Err(_) = fs::read_dir(&data_dir) {
+        if let Err(_) = fs::create_dir_all(&data_dir) {
+            return Err(format!("Unable to create {}", data_dir.to_str().unwrap_or("<Path is not valid Unicode>")));
+        }
+    }
+    let mut data_file_path = data_dir;
+    data_file_path.push("data.txt");
+    if let Err(_) = fs::write(&data_file_path, file_buf) {
+        return Err(format!("Unable to write to {}", data_file_path.to_str().unwrap_or("<Path is not valid Unicode>")));
+    };
     Ok(())
 }
 
