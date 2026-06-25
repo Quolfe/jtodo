@@ -5,38 +5,11 @@ use regex::Regex;
 const _CURRENT_VERSION: &str = "1.0";
 
 pub fn read_data() -> Result<Vec<Task>, String> {
-    let data_dir = get_data_dir()?;
-    let dir_iter = match fs::read_dir(&data_dir) {
-        Ok(dir_iter) => dir_iter,
-        Err(_) => {
-            if let Err(_) = fs::create_dir_all(&data_dir) {
-                return Err(format!("Unable to create directory {data_dir}"));
-            }
-            match fs::read_dir(&data_dir) {
-                Ok(dir_iter) => dir_iter,
-                Err(_) => return Err(format!("Created directory {data_dir}, but was unable to open {data_dir}")),
-            }
-        },
-    };
-    let mut data_file_path = None;
-    for dirent in dir_iter {
-        if let Err(_) = dirent {
-            continue;
-        }
-        let dirent = dirent.unwrap();
-        let entry_path = dirent.path();
-        if entry_path.is_file() && entry_path.file_name().expect("Should be able to read file name").to_str().unwrap() == "data.txt" {
-            data_file_path = Some(entry_path);
-            break;
-        }
-    }
-    if let None = data_file_path {
-        return Ok(Vec::new());
-    }
-    let data_file_path = data_file_path.unwrap();
+    let mut data_file_path = get_data_dir()?;
+    data_file_path.push_str("/data.txt");
     let data_file_contents = match fs::read_to_string(&data_file_path) {
         Ok(contents) => contents,
-        Err(_) => return Err(format!("Unable to read {}", data_file_path.to_str().unwrap())),
+        Err(_) => return Ok(Vec::new()),
     };
     let mut data_file_lines = data_file_contents.lines();
     let _version = data_file_lines.next().unwrap_or("");
