@@ -1,12 +1,12 @@
 use super::Task;
-use std::{env, fs, time::Duration};
+use std::{env, fs, path::{Path, PathBuf}, time::Duration};
 use regex::Regex;
 
 const _CURRENT_VERSION: &str = "1.0";
 
 pub fn read_data() -> Result<Vec<Task>, String> {
     let mut data_file_path = get_data_dir()?;
-    data_file_path.push_str("/data.txt");
+    data_file_path.push("data.txt");
     let data_file_contents = match fs::read_to_string(&data_file_path) {
         Ok(contents) => contents,
         Err(_) => return Ok(Vec::new()),
@@ -49,19 +49,19 @@ pub fn write_data() -> Result<(), &'static str> {
     Ok(())
 }
 
-fn get_data_dir() -> Result<String, String> {
+fn get_data_dir() -> Result<PathBuf, String> {
     let mut data_dir = match env::var("XDG_DATA_HOME") {
-        Ok(path) => path,
+        Ok(path) => Path::new(&path).to_path_buf(),
         Err(_) => {
             let mut home_dir = match env::var("HOME") {
-                Ok(path) => path,
+                Ok(path) => Path::new(&path).to_path_buf(),
                 Err(_) => return Err("$HOME not found".to_owned()),
             };
-            home_dir.push_str("/.local");
+            home_dir.push(".local");
             home_dir
         }
     };
-    data_dir.push_str("/share");
-    data_dir.push_str("/jtodo");
+    data_dir.push("share");
+    data_dir.push("jtodo");
     Ok(data_dir)
 }
